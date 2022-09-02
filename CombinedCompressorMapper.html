@@ -1,0 +1,563 @@
+<html>
+    <head>
+        <meta charset="utf8">
+        <style>
+            #CurveList {
+                width: 100%;
+            }
+
+            #ExportOutput {
+                font-size: 5px;
+                border: 2px solid black;
+                padding: 10px;
+            }
+
+            div.CanvasBox {
+                position: absolute;
+                padding: 0px;
+                margin: 0px;
+                opacity: 0.5;
+            }
+
+            div.CurveData {
+                position: absolute;
+                left: 420px;
+                width: 500px;
+            }
+
+            table {
+                border: 2px solid;
+                padding: 0px;
+                border-spacing: 0px;
+                width: 100%;
+            }
+
+            table.NodeList {
+                width: 100px;
+                float: left;
+            }
+
+            th {
+                border-bottom: 2px solid;
+            }
+
+            td {
+                border-top: 0.35px solid
+            }
+
+            td.num {
+                text-align: center;
+            }
+
+            td.Symbol {
+                text-align: center;
+            }
+
+            * {
+                font-family: Verdana;
+            }
+
+            canvas {
+                border: 2px solid black;
+            }
+
+            img {
+                position: absolute;
+                left: 10px;
+                top:47px;
+            }
+
+            input {
+                width: 100px;
+            }
+        </style>
+       
+    </head>
+
+    <body>
+        <p> CompressorMap: </p>
+        <img id="ImageLoader" src=''>
+
+        <div class="CanvasBox">
+            <canvas id="canvas" width="400" height="400"></canvas>
+        </div>
+
+        <div class="CurveData">
+            <table>
+                <th colspan="3">Compressor Info</th>
+                <tr>
+                    <td colspan="2">Compressor Map URL: </td>
+                    <td>
+                        <input oninput=" LoadImage(this.value) " type="url" id="CompressorMapIMGURL"></input>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">Compressor Name: </td>
+                    <td>
+                        <input type="text" id="CompressorName"></input>
+                    </td>
+                </tr>
+                <tr>
+                    <td> Graph Start Pixel (X,Y):</td>
+                    <td>
+                        <input oninput="GraphStartPixelX = this.value" value = 0 type="number" id="StartPixelX">,</input>
+                    </td>
+                    <td>
+                        <input oninput="GraphStartPixelY = this.value" value = 0 type="number" id="StartPixelY"></input>
+                    </td>
+                </tr>
+                <tr>
+                    <td> Graph End Pixel (X,Y):</td>
+                    <td>
+                        <input oninput="GraphEndPixelX = this.value" value = 0 type="text" id="EndPixelX">,</input>
+                    </td>
+                    <td>
+                        <input oninput="GraphEndPixelY = this.value" value = 0 type="text" id="EndPixelY"></input>
+                    </td>
+                </tr>
+                <tr>
+                    <td> Graph Size (In given units, W,H):</td>
+                    <td>
+                        <input oninput="GraphWidth = this.value"  value = 0  type="text" id="GraphWidth">,</input>
+                    </td>
+                    <td>
+                        <input oninput="GraphHeight = this.value"  value = 0  type="text" id="GraphHeight"></input>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="1">
+                        <button onclick = "Export()" >Export</button>
+                    </td>
+                    <td colspan="2">
+                        <input onchange="Import()" id="ImportInput" type="file">
+                    </td>
+                </tr>
+            </table>
+           
+            <table id="CurveList"></table>
+            <p id="ExportOutput">H e l l  o</p>
+
+        </div>
+
+        
+    </body>
+
+   
+    <footer>
+        <script>
+            class Vec2 {
+                constructor(x,y) {
+                    this.x = x
+                    this.y = y
+                }
+
+                add(NodeB) {
+                    return new Vec2(this.x+NodeB.x,this.y+NodeB.y);
+                }
+                sub(NodeB) {
+                    return new Vec2(this.x-NodeB.x,this.y-NodeB.y);
+                }
+                mul(k) {
+                    return new Vec2(this.x*k,this.y*k);
+                }
+                div(k) {
+                    return new Vec2(this.x/k,this.y/k);
+                }
+                dist2(Vec2B) {
+                    return Math.pow(Vec2B.x-this.x,2) + Math.pow(Vec2B.y-this.y,2);
+                }
+
+                dist(Vec2B) {
+                    return Math.sqrt(this.dist2(Vec2B));
+                }
+                magnitude() {
+                    return this.dist(new Vec2(0,0));
+                }
+                unit() {
+                    return this.div(this.magnitude());
+                }
+                rotate(angle) {
+                    return new Vec2(Math.cos(angle)*this.x - Math.sin(angle)*this.y,Math.sin(angle)*this.x+Math.cos(angle)*this.y)
+                }
+                toString() {
+                    return `(${this.x} , ${this.y})`
+                }
+            }
+
+            const CurveType = {
+                Efficiency: 1,
+                Speed: 2,
+            }
+
+            class Curve {
+                constructor(CurveType,IsClosed) {
+                    this.CurveType = CurveType;
+                    this.Nodes = [];
+                    this.Closed = IsClosed;
+                    this.Value = 0;
+                    Curves[Curves.length] = this;
+
+                }
+                AddNode(NewNode,Index) {
+                    Index = Index || this.Nodes.length;
+                    this.Nodes.splice(Index,0,NewNode);
+                }
+                DrawToCanvas(IsFocused) {
+
+                    if (this.Nodes.length < 2) {return;}
+
+                    const Canvas =  document.getElementById('canvas');
+                    const Context = Canvas.getContext('2d');
+
+                    if (this.CurveType == CurveType.Efficiency) {
+                        Context.strokeStyle = 'red';
+                    } else if (this.CurveType == CurveType.Speed) {
+                        Context.strokeStyle = 'orange';
+                    } else {
+                        Context.strokeStyle = 'black';
+                    }
+
+                    Context.lineOpacity = 0.5;
+
+                    Context.beginPath();
+
+                    Context.moveTo(this.Nodes[0].x,this.Nodes[0].y)
+                    for (var i=0; i < this.Nodes.length; i++) {
+                        var NextNode = this.Nodes[i+1];
+                        if (!NextNode && this.Closed) {
+                            NextNode = this.Nodes[0];
+                        }
+                        if (!NextNode) {
+                            break;
+                        }
+                        Context.lineTo(NextNode.x,NextNode.y);
+                    }
+                    
+                    Context.stroke();
+
+                    if (!IsFocused) {return;}
+                    
+                    for (var i=0; i < this.Nodes.length; i++) {
+                        var Node = this.Nodes[i];
+                        var NextNode = this.Nodes[i+1];
+                        
+                        if (!NextNode && this.Closed) {
+                            NextNode = this.Nodes[0];
+                        }
+                        if (!NextNode) {
+                            break;
+                        }
+                        
+                        var Normal = NextNode.sub(Node).unit().rotate(Math.PI*0.5).mul(50);
+                        
+                        Context.beginPath();
+                        Context.strokeStyle = 'green';
+                        Context.lineWidth = 2
+                        Context.moveTo((Node.x+NextNode.x)/2,(Node.y+NextNode.y)/2);
+                        Context.lineTo((Node.x+NextNode.x)/2+Normal.x,(Node.y+NextNode.y)/2+Normal.y);
+                        Context.stroke();
+                    }
+                    
+                    
+                }
+                reverse() {
+                    this.Nodes.reverse();
+                }
+
+                tostring() {
+                    var txt = 'xx ';
+
+                    if (this.CurveType == CurveType.Efficiency) {
+                        txt = 'ef ';
+                    } else if (this.CurveType == CurveType.Speed) {
+                        txt = 'sp ';
+                    }
+
+                    if (this.Closed) {
+                        txt += 'c ';
+                    } else {
+                        txt += 'o ';
+                    }
+
+                    txt += this.Value;
+
+                    for (var i=0;i<this.Nodes.length;i++) {
+                        var txtX = GraphWidth*(this.Nodes[i].x-GraphStartPixelX)/(GraphEndPixelX-GraphStartPixelX);
+                        var txtY = GraphHeight*(1-(this.Nodes[i].y-GraphStartPixelY)/(GraphEndPixelY-GraphStartPixelY)) + 1;
+                        txt += ` ${txtX} ${txtY}`;
+                    }
+
+                    return txt;
+                }
+            }
+
+            var Curves = [];
+            var FocusedCurve = 0;
+
+            function DrawAllCurves() {
+                const Canvas = document.getElementById('canvas');
+                const Context = Canvas.getContext('2d');
+
+                Context.clearRect(0, 0, Canvas.width, Canvas.height);
+
+                
+
+                for (var i=0; i<Curves.length; i++) {
+                    if (!Curves[i]) {
+                        continue;
+                    }
+
+                    if (i==FocusedCurve) {
+                        Context.lineWidth = 5;
+                    } else {
+                        Context.lineWidth = 3;
+                    }
+
+                    Curves[i].DrawToCanvas(i==FocusedCurve);
+                }
+            }
+
+            function LoadCurvesToTable() {
+
+                var txt =
+                `<tr>
+                    <th colspan="6">
+                        Curves
+                    </th>
+                </tr>`;
+
+                for (var i=0; i<Curves.length; i++) {
+                    const Curve = Curves[i];
+
+                    
+                    var TypeSymbol = "XX";
+                    if (Curve.CurveType == CurveType.Efficiency) {
+                        TypeSymbol = 'EF ';
+                    } else if (Curve.CurveType == CurveType.Speed) {
+                        TypeSymbol = 'SP ';
+                    }
+                    var ClosedSymbol = "O";
+                    if (Curve.Closed) {ClosedSymbol = "C";}
+
+                    var SelectedTxt = ""
+
+                    
+                    if (i == FocusedCurve) {
+                        SelectedTxt = "style='background-color:powderblue' "
+                    }
+
+
+                    const HoverOverStyle=
+                    `
+                    this.style["background-color"] = "lightgrey"
+                    this.style["outline"] = "3px double grey"
+                    this.style["outline-offset"] = "-3px"
+                    `
+
+                    const NormalStyle=
+                    `
+                    this.style["background-color"] = ""
+                    this.style["outline"] = ""
+                    `
+                    const Value = Curve.Value
+                    txt += 
+                    `<tr ${SelectedTxt}>
+                        <td onclick="SwapCurveType(${i})" onmouseleave='${NormalStyle}' onmouseover='${HoverOverStyle}' class="Symbol">
+                            ${TypeSymbol}
+                        </td>
+                        <td  onclick="SwapCurveClosed(${i})" onmouseleave='${NormalStyle}' onmouseover='${HoverOverStyle}'  class="Symbol">
+                            ${ClosedSymbol}
+                        </td>
+                        <td class="Symbol">
+                            <button onclick = "DeleteCurve(${i+1})"> DEL </button>
+                        </td>
+                        <td class="Symbol">
+                            <button onclick = "FocusCurve(${i+1})"> SEL </button>
+                        </td>
+                        <td class="Symbol">
+                            <button onclick = "ReverseCurve(${i})"> REV </button>
+                        </td>
+                        <td class="Symbol">
+                            VAL:<input onchange="Curves[${i}].Value = this.value" value = ${Value}></button>
+                        </td>
+                    </tr>`;
+                }
+                
+                txt +=`<tr>
+                    
+                    <td colspan="6"><button onclick="NewCurve()">New Curve</button></td>
+                </tr>`;
+                document.getElementById('CurveList').innerHTML = txt;
+            }
+
+            function ReverseCurve(Index) {
+                Curves[Index].reverse();
+                DrawAllCurves();
+            }
+
+            function SwapCurveType(Index) {
+                if (Curves[Index]) {
+                    if (Curves[Index].CurveType == CurveType.Efficiency) {
+                        Curves[Index].CurveType = CurveType.Speed;
+                    } else {
+                        Curves[Index].CurveType = CurveType.Efficiency;
+                    }
+                }
+                LoadCurvesToTable();
+                DrawAllCurves();
+            }
+
+            function SwapCurveClosed(Index) {
+                if (Curves[Index]) {
+                    Curves[Index].Closed = !Curves[Index].Closed;
+                }
+                LoadCurvesToTable();
+                DrawAllCurves();
+            }
+
+            function FocusCurve(Index) {
+                FocusedCurve = Index-1;
+                LoadCurvesToTable();
+                DrawAllCurves();
+            }
+
+            function DeleteCurve(Index) {
+                Curves.splice(Index-1,1);
+                LoadCurvesToTable();
+                DrawAllCurves();
+            }
+
+            function NewCurve() {
+                new Curve(CurveType.Speed,false);
+                FocusedCurve = Curves.length-1;
+                LoadCurvesToTable();
+                DrawAllCurves();
+            }
+
+            function LoadImage(URL) {
+                IMG = document.getElementById("ImageLoader")
+                IMG.src = URL
+                Canvas = document.getElementById('canvas')
+                Canvas.width = IMG.width
+                Canvas.height = IMG.height
+                document.getElementsByClassName('CurveData')[0].style["left"] = (IMG.width + 20) + 'px'
+            }
+
+            function Export() {
+                var txt = document.getElementById("CompressorName").value +"\n" + document.getElementById("CompressorMapIMGURL").value
+
+                txt +="\n" + [GraphStartPixelX,GraphStartPixelY,GraphEndPixelX,GraphEndPixelY,GraphWidth,GraphHeight].join("\n");
+
+
+                for (var i=0; i<Curves.length; i++) {
+                    txt += "\n" + Curves[i].tostring();
+                }
+
+
+
+                document.getElementById('ExportOutput').innerText = txt;
+            }
+
+            function LoadMapFromFile() {
+
+            }
+
+            var GraphStartPixelX = 0;
+            var GraphStartPixelY = 0;
+            var GraphEndPixelX = 0;
+            var GraphEndPixelY = 0;
+            var GraphWidth = 0;
+            var GraphHeight = 0;
+
+
+            LoadCurvesToTable();
+            LoadImage();
+
+            document.getElementById('canvas').onmousedown = function(e) {
+                const x = e.layerX-2;
+                const y = e.layerY-2;
+                if (Curves[FocusedCurve]) {
+                    Curves[FocusedCurve].AddNode(new Vec2(x,y));
+                }
+
+                DrawAllCurves();
+            }
+
+            function Import() {
+                console.log('importing...');
+                var FR = new FileReader();
+                var File = document.getElementById("ImportInput").files[0];
+                
+                if (!File) {return;}
+
+                FR.addEventListener('load',function (e) {
+                    var txt = e.target.result;
+                    Data = txt.split("\n")
+                    if (Data.length >= 8) {
+                        document.getElementById("CompressorName").value=Data[0];
+                        document.getElementById("CompressorMapIMGURL").value=Data[1];
+                        
+                        LoadImage(Data[1]);
+                        
+                        GraphStartPixelX = parseInt(Data[2]);
+                        GraphStartPixelY = parseInt(Data[3]);
+                        GraphEndPixelX = parseInt(Data[4]);
+                        GraphEndPixelY = parseInt(Data[5]);
+                        GraphWidth = parseFloat(Data[6]);
+                        GraphHeight = parseFloat(Data[7]);
+
+                        document.getElementById("StartPixelX").value = GraphStartPixelX;
+                        document.getElementById("StartPixelY").value = GraphStartPixelY;
+                        document.getElementById("EndPixelX").value = GraphEndPixelX;
+                        document.getElementById("EndPixelY").value = GraphEndPixelY;
+                        document.getElementById("GraphWidth").value = GraphWidth;
+                        document.getElementById("GraphHeight").value = GraphHeight;
+
+                        Curves = [];
+
+                        for (var i=8; i<Data.length; i++) {
+                            const CurveData = Data[i].split(" ");
+                            console.log(CurveData);
+
+                            var Type = 0;
+
+                            if (CurveData[0] == "sp") {
+                                Type = CurveType.Speed;
+                            } else if (CurveData[0] == "ef") {
+                                Type = CurveType.Efficiency;
+                            }
+
+                            const Closed = CurveData[1] == "c";
+
+                            var curve = new Curve(Type,Closed);
+                            curve.Value = CurveData[2];
+
+                            for (j=3; j<CurveData.length; j += 2) {
+                                var x = CurveData[j];
+                                var y = CurveData[j+1];
+
+                                if (!x || !y) {break;}
+
+                                x = parseFloat(x);
+                                y = parseFloat(y);
+
+                                x = (x/GraphWidth)*(GraphEndPixelX-GraphStartPixelX) + GraphStartPixelX;
+                                y = (1-((y-1)/GraphHeight))*(GraphEndPixelY-GraphStartPixelY) + GraphStartPixelY;
+
+                                curve.AddNode(new Vec2(x,y));
+                            }
+
+
+                        }
+
+                        DrawAllCurves();
+                        LoadCurvesToTable();
+
+                    }
+                })
+                FR.readAsText(File);
+
+            }
+        </script>        
+    </footer>
+</html>
