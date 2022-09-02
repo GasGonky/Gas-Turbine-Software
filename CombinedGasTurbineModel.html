@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <style>
+            * {
+                font-family: Verdana;
+            }
+
+            table {
+                padding: 0px;
+                border: 2px solid black;
+                border-spacing: 0px;
+                width: 100%;
+            }
+
+            th {
+                border-bottom: 2px solid black;
+            }
+
+            td {
+                vertical-align: top;
+            }
+
+            td.dash_bottom {
+                border-bottom: 2px dashed black;
+            }
+
+            div.drop_down.even {
+                background-color: #f0f0f0;
+                cursor: pointer;
+            }
+
+            div.drop_down.odd {
+                background-color: #fafafa;
+                cursor: pointer;
+            }
+
+            div.drop_down:hover {
+                background-color:lightblue;
+                cursor: pointer;
+            }
+
+            #fuel_drop_down {
+                
+                border: 1px solid black;
+
+                cursor: context-menu;
+                
+            }
+            #fuel_drop_down:hover {
+                background-color: lightgray;
+            }
+
+            button {
+                float: right;
+            }
+        </style>
+    </head>
+    <body>
+        <table>
+            <tr>
+                <th colspan="3">
+                    Ambient Gas Conditions
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    Quantity
+                </th>
+                <th>
+                    Value
+                </th>
+                <th>
+                    Unit
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    Total Temperature
+                </td>
+                <td>
+                    <input onchange="get_ambient_values()" id="total_temperature_input" type="number" value="0">
+                </td>
+                <td>
+                    °C
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Total Pressure
+                </td>
+                <td>
+                    <input onchange="get_ambient_values()" id="total_pressure_input" type="number" value="101.325">
+                </td>
+                <td>
+                    kPa
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Specific Heat at Constant Pressure,&nbsp;cₚ
+                </td>
+                <td>
+                    <input onchange="get_ambient_values()" id="specific_heat_at_constant_pressure_input" type="number" value="1.005">
+                </td>
+                <td>
+                    kJkg<sup>-1</sup>K<sup>-1</sup>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Ratio of Specific Heats, cₚ / cᵥ
+                </td>
+                <td>
+                    <input onchange="get_ambient_values()" id="ratio_of_specific_heats_input" type="number" value="1.4">
+                </td>
+                <td>
+                    
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <button onclick="reset_ambient_conditions_to_standard(); get_ambient_values()"> Reset Conditions</button>
+                </td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th colspan="3">
+                    Component Properties
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    Compressor Map Data
+                </td>
+                <td>
+                    <button onclick="load_compressor_map()"> Force Reload </button>
+                </td>
+                <td>
+                    <input onchange="load_compressor_map()" id="compressor_map_file_input" type="file">
+                </td>
+
+            </tr>
+            <tr>
+                <td>
+                    Compressor
+                </td>
+                <td colspan="2" id="compressor_name_output">
+                    Compressor Name
+                </td>
+            </tr>
+            <tr>
+                <td class="dash_bottom" colspan="3">
+                    <img id="compressor_map_img" src="">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    Burner Efficiency
+                </td>
+                <td>
+                    <input oninput="update_efficiencies(this)" id="burner_efficiency_slider" type="range" value="100">
+                </td>
+                <td>
+                    <input oninput="update_efficiencies(this)" id="burner_efficiency_input" type="number" value="100">
+                </td>
+            </tr>
+            <tr>
+                <td class="dash_bottom">
+                    Turbine Efficiency
+                </td>
+                <td class="dash_bottom">
+                    <input oninput="update_efficiencies(this)" id="turbine_efficiency_slider" type="range" value="100">
+                </td>
+                <td class="dash_bottom">
+                    <input oninput="update_efficiencies(this)" id="turbine_efficiency_input" type="number" value="100">
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    Fuel
+                </td>
+                <td  align="center" id="fuel_drop_down"> Select Fuel</td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    Fuel Heating Value
+                </td>
+                <td  align="center" id="fuel_heating_value_output"></td>
+            </tr>
+            <tr>
+                <td colspan="2" class="dash_bottom">
+                    Stoichiometric Fuel Mass% With Air
+                </td>
+                <td class="dash_bottom"  align="center" id="fuel_stoichiometric_mix_output"></td>
+            </tr>
+            <tr>
+                <td colspan="2" >
+                    Failure Temperature
+                </td>
+                <td>
+                    <input min="-273.15" id="burner_failure_temperature_input" onchange="burner_failure_temperature = parseFloat(this.value)+273.15" type="number" value="600"> °C
+                </td>
+            </tr>
+        </table>
+        <table>
+            <tr>
+                <th>
+                    Results
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    Efficiency Plot <button onclick="draw_efficiency_plot()">Compute</button>
+                    
+                </th>
+                
+            </tr>
+            <tr>
+                <td>
+                    <canvas width="0px" height="0px" id="efficiency_plot_canvas"></canvas>
+                    
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Net Power Plot <button onclick="draw_power_plot()">Compute</button>
+                </th>
+            </tr>
+            <tr>
+                <td>
+                    <canvas width="0px" height="0px" id="power_plot_canvas"></canvas>
+                </td>
+            </tr>
+        </table>
+    </body>
+
+    <footer>
+        <script>
+            const CURVE_TYPE = {
+                SPEED: 1,
+                EFFICIENCY: 2
+            }
+
+            class Vec2 {
+                constructor(X,Y) {
+                    this.x = X;
+                    this.y = Y;
+                }
+                add(VEC2_B) {
+                    // adds VEC2_B to this vector
+                    return new Vec2(this.x+VEC2_B.x,this.y+VEC2_B.y);
+                }
+                sub(VEC2_B) {
+                    // subtracts VEC2_B from this vector
+                    return new Vec2(this.x-VEC2_B.x,this.y-VEC2_B.y);
+                }
+                mul(K) {
+                    // performs a scalar multiplication
+                    return new Vec2(this.x*K,this.y*K);
+                }
+                div(K) {
+                    // performs a scalar division
+                    return new Vec2(this.x/K,this.y/K);
+                }
+                len2() {
+                    // returns the length squared of the vector
+                    return Math.pow(this.x,2)+Math.pow(this.y,2);
+                }
+                len() {
+                    // returns the length of the vector
+                    return Math.pow(this.len2(),0.5);
+                }
+                unit() {
+                    // returns a copy of the vector with magnitude 1
+                    return this.div(this.len());
+                }
+                dist2(VEC2_B) {
+                    // returns the squared distance between the two vectors
+                    return this.sub(VEC2_B).len2();
+                }
+                dist(VEC2_B) {
+                    // returns the distance between the two vectors
+                    return this.sub(VEC2_B).len();
+                }
+                rotate(ANGLE) {
+                    // rotates the vector by the angle specified, taking anticlockwise to be a positive rotation
+                    return new Vec2(this.x*Math.cos(ANGLE)-this.y*Math.sin(ANGLE),this.x*Math.sin(ANGLE)+this.y*Math.cos(ANGLE));
+                }
+                dot(VEC2_B) {
+                    // this returns the dot product between the two vectors
+                    return this.x*VEC2_B.x + this.y*VEC2_B.y;
+                }
+                angle_between(VEC2_B) {
+                    // This function uses the cosine rule to determine the angle between two vectors
+                    const A = this.len();
+                    const B = VEC2_B.len();
+                    const C = VEC2_B.sub(this).len();
+                    return Math.acos((A*A + B*B - C*C)/(2*A*B));
+                }
+                cross(VEC2_B) {
+                    // Note: the cross product is not strictly defined for 2D space, but we can pretend that these
+                    // 2D vectors are actually 3D vectors on the XY plane, so this function returns
+                    // the Z component of the cross of the two '3D' vectors
+                    return this.x*VEC2_B.y - this.y*VEC2_B.x;
+                }
+            }
+
+            class Curve {
+                constructor(CURVE_DATA_STRING) {
+                    // Setup some of the variables
+                    this.curve_type = 0;
+                    this.closed = false;
+                    this.value = 0;
+                    this.nodes = [];
+
+                    // Load an array containing all the curve's data
+                    const CURVE_DATA = CURVE_DATA_STRING.split(" ");
+
+                    // Set the curve's type
+                    if (CURVE_DATA[0] == 'sp') {
+                        this.curve_type = CURVE_TYPE.SPEED;
+                    } else if (CURVE_DATA[0] == 'ef') {
+                        this.curve_type = CURVE_TYPE.EFFICIENCY;
+                    }
+
+                    // Set whether or not the curve is closed
+                    this.closed = CURVE_DATA[1] == "c";
+
+                    // Set the curve's associated value
+                    this.value = parseFloat(CURVE_DATA[2]);
+
+                    // Iterate over the remaining values to produce the list of points
+                    for (var i=3; i < CURVE_DATA.length; i += 2) {
+                        const X = CURVE_DATA[i];
+                        const Y = CURVE_DATA[i+1];
+
+                        this.nodes[this.nodes.length] = new Vec2(parseFloat(X),parseFloat(Y));
+                    }
+                }
+                closest_point_on_segment(SEGMENT_INDEX,POINT,VERTICAL_SCALING) {
+                    // Get the points that define this segment
+                    const POINT_1 = this.nodes[SEGMENT_INDEX];
+                    var point_2 = this.nodes[SEGMENT_INDEX+1];
+
+                    if (point_2 == null && this.closed == true && SEGMENT_INDEX == this.nodes.length-1) {
+                        point_2 = this.nodes[0];
+                    }  
+
+                    // make sure both points exist
+                    if (!POINT_1 || !point_2) {
+                        
+                        return;
+                    }
+
+                    POINT_1.y *= VERTICAL_SCALING;
+                    point_2.y *= VERTICAL_SCALING;
+                    POINT.y *= VERTICAL_SCALING;
+
+                    // Get the distance to the line segment using the SDF of a line segment
+                    // See https://www.youtube.com/watch?v=PMltMdi1Wzg for guidance
+
+                    const H = Math.min(1,Math.max(0,
+                        POINT.sub(POINT_1).dot(point_2.sub(POINT_1)) /
+                        point_2.sub(POINT_1).dot(point_2.sub(POINT_1))
+                    ));
+
+
+                    const CLOSEST_POINT = point_2.sub(POINT_1).mul(H).add(POINT_1);
+
+                    return CLOSEST_POINT;
+                }
+
+                closest_point_on_curve(POINT,VERTICAL_SCALING) {
+                    // set up the variables
+                    var closest_distance = Infinity;
+                    var closest_segment_index = 0;
+                    var last_distance = 0;
+                    // iterate over each line segment in the curve to find the line segment 
+                    // with the smallest unsigned distance to the point
+                    for (var i=0; i < (this.nodes.length); i++) {
+                        const DISTANCE = this.signed_distance_to_segment(i,POINT,VERTICAL_SCALING);
+
+                        if (Math.abs(DISTANCE) < Math.abs(closest_distance)) {
+                            closest_distance = DISTANCE;
+                            closest_segment_index = i;
+                        } else if ((0 < i) && (Math.abs(DISTANCE) == Math.abs(closest_distance)) && (DISTANCE + last_distance == 0)) {
+                            var next_node = this.nodes[i+1]
+                            if (next_node == null) {
+                                if (this.closed) {
+                                    next_node = this.nodes[0];
+                                } else {
+                                    closest_distance = this.signed_distance_to_segment(i,POINT,VERTICAL_SCALING);
+                                    continue;
+                                }
+                            }
+                            closest_distance = Math.abs(DISTANCE) * -Math.sign(this.nodes[i].sub(this.nodes[i-1]).cross(next_node.sub(this.nodes[i-1])));
+                        }
+                        
+                        last_distance = DISTANCE;
+                    }
+
+                    return  this.closest_point_on_segment(closest_segment_index,POINT,VERTICAL_SCALING);
+                }
+
+                signed_distance_to_segment(SEGMENT_INDEX,POINT,VERTICAL_SCALING) {
+                    // Get the points that define this segment
+                    const POINT_1 = this.nodes[SEGMENT_INDEX];
+                    var point_2 = this.nodes[SEGMENT_INDEX+1];
+
+                    if (point_2 == null && this.closed == true && SEGMENT_INDEX == this.nodes.length-1) {
+                        point_2 = this.nodes[0];
+                    }  
+                    // make sure both points exist
+                    if (!POINT_1 || !point_2) {
+                        
+                        return;
+                    }
+
+                    POINT_1.y *= VERTICAL_SCALING;
+                    point_2.y *= VERTICAL_SCALING;
+                    POINT.y *= VERTICAL_SCALING;
+
+                    // Get the distance to the line segment using the SDF of a line segment
+                    // See https://www.youtube.com/watch?v=PMltMdi1Wzg for guidance
+
+                    const H = Math.min(1,Math.max(0,
+                        POINT.sub(POINT_1).dot(point_2.sub(POINT_1)) /
+                        point_2.sub(POINT_1).dot(point_2.sub(POINT_1))
+                    ));
+
+                    
+                    const UNSIGNED_DISTANCE = (POINT.sub(POINT_1).sub(point_2.sub(POINT_1).mul(H))).len();
+                    
+                    // multiply the unsigned distance by the sign of the cross product
+                    var sign = Math.sign(point_2.sub(POINT_1).unit().cross(POINT.sub(POINT_1).unit()));
+                    
+                    if (sign == 0) {
+                        sign = 1
+                    }
+
+                    return sign*UNSIGNED_DISTANCE;
+                }
+
+                signed_distance_to_curve(POINT,VERTICAL_SCALING) {
+                    // set up the variables
+                    var closest_distance = Infinity;
+                    var closest_segment_index = 0;
+                    var last_distance = 0;
+                    // iterate over each line segment in the curve to find the line segment 
+                    // with the smallest unsigned distance to the point
+                    for (var i=0; i < (this.nodes.length); i++) {
+                        const DISTANCE = this.signed_distance_to_segment(i,POINT,VERTICAL_SCALING);
+
+                        if (Math.abs(DISTANCE) < Math.abs(closest_distance)) {
+                            closest_distance = DISTANCE;
+                            closest_segment_index = i;
+                        } else if ((0 < i) && (Math.abs(DISTANCE) == Math.abs(closest_distance)) && (DISTANCE + last_distance == 0)) {
+                            var next_node = this.nodes[i+1]
+                            if (next_node == null) {
+                                if (this.closed) {
+                                    next_node = this.nodes[0];
+                                } else {
+                                    closest_distance = this.signed_distance_to_segment(i,POINT,VERTICAL_SCALING);
+                                    continue;
+                                }
+                            }
+                            closest_distance = Math.abs(DISTANCE) * -Math.sign(this.nodes[i].sub(this.nodes[i-1]).cross(next_node.sub(this.nodes[i-1])));
+                        }
+                        
+                        last_distance = DISTANCE;
+                    }
+
+                    return  closest_distance;
+                }
+            }
+
+            class CompressorMap {
+                constructor(COMPRESSOR_MAP_DATA_STRING) {
+                    // set up the variables
+                    this.name = "Unnamed Compressor Map";
+                    this.compressor_img_url = "";
+                    this.graph_start_pixel = new Vec2(0,0);
+                    this.graph_end_pixel = new Vec2(10,10);
+                    this.graph_width = 0;
+                    this.graph_height = 0;
+                    this.min_efficiency = Infinity;
+                    this.max_efficiency = 0;
+                    this.min_speed = Infinity;
+                    this.max_speed = 0;
+
+                    this.speed_curves = [];
+                    this.efficiency_curves = [];
+
+                    // Load the compressor map data
+                    const COMPRESSOR_MAP_DATA = COMPRESSOR_MAP_DATA_STRING.split("\n");
+                    
+                    // Set the basic values
+                    this.name = COMPRESSOR_MAP_DATA[0];
+                    this.compressor_img_url = COMPRESSOR_MAP_DATA[1];
+                    this.graph_start_pixel = new Vec2(parseInt(COMPRESSOR_MAP_DATA[2]),parseInt(COMPRESSOR_MAP_DATA[3]));
+                    this.graph_end_pixel = new Vec2(parseInt(COMPRESSOR_MAP_DATA[4]),parseInt(COMPRESSOR_MAP_DATA[5]));
+                    this.graph_width = COMPRESSOR_MAP_DATA[6];
+                    this.graph_height = COMPRESSOR_MAP_DATA[7];
+
+
+                    const DIMENSIONS = this.graph_end_pixel.sub(this.graph_start_pixel);
+
+                    this.VERTICAL_SCALING = 1; // this solution to the artefacts didn't work.
+
+                    // iterate over the remaining data to add the curves
+                    for (var i=8; i<COMPRESSOR_MAP_DATA.length; i++) {
+                        const CURVE = new Curve(COMPRESSOR_MAP_DATA[i]);
+                        
+                        if (CURVE.curve_type == CURVE_TYPE.SPEED) {
+                            this.speed_curves[this.speed_curves.length] = CURVE;
+
+                            if (CURVE.value < this.min_speed) {
+                                this.min_speed = CURVE.value;
+                            }
+                            if (CURVE.value > this.max_speed) {
+                                this.max_speed = CURVE.value;
+                            }
+
+                        } else if (CURVE.curve_type == CURVE_TYPE.EFFICIENCY) {
+                            this.efficiency_curves[this.efficiency_curves.length] = CURVE;
+
+                            if (CURVE.value < this.min_efficiency) {
+                                this.min_efficiency = CURVE.value;
+                            }
+                            if (CURVE.value > this.max_efficiency) {
+                                this.max_efficiency = CURVE.value;
+                            }
+
+                        }
+                    }
+                }
+                determine_bounding_curves(POINT,TYPE) {
+                    var reference_curve_list = null;
+
+                    // select the type of curves to search
+                    if (TYPE == CURVE_TYPE.SPEED) {
+                        reference_curve_list = this.speed_curves;
+                    } else if (TYPE == CURVE_TYPE.EFFICIENCY) {
+                        reference_curve_list = this.efficiency_curves;
+                    }
+
+                    // break out of the function if the referenced list does not exist
+                    if (!reference_curve_list) {return;}
+
+                    // sort the list by its associated value
+                    reference_curve_list.sort((A,B)=>A.value-B.value);
+                
+                    var closest_inside_index;
+                    var closest_outside_index;
+
+                    var closest_inside_distance = Infinity;
+                    var closest_outside_distance = Infinity;
+
+                    var closest_outright_index;
+                    var closest_outright_distance = Infinity;
+
+                    for (var i = 0; i < reference_curve_list.length; i++) {
+
+                        var is_inside = true;
+                        var min_dist = Infinity;
+                        var closest_curve_index;
+                        for (var offset = 0; offset + i < reference_curve_list.length &&  reference_curve_list[i+offset].value == reference_curve_list[i].value; offset ++) {
+                            const CURVE = reference_curve_list[offset + i];
+
+                            const DISTANCE = CURVE.signed_distance_to_curve(POINT,this.VERTICAL_SCALING);
+
+                            is_inside = is_inside && DISTANCE < 0;
+
+                            if (Math.abs(DISTANCE) < Math.abs(min_dist)) {
+                                min_dist = DISTANCE;
+                                closest_curve_index = i+offset
+                            }
+
+                        }
+                        i += offset -1;
+
+                        if (is_inside) {
+                            if (Math.abs(min_dist) < Math.abs(closest_inside_distance)) {
+                                closest_inside_index = closest_curve_index;
+                                closest_inside_distance = min_dist;
+                            }
+                        } else {
+                            if (Math.abs(min_dist) < Math.abs(closest_outside_distance)) {
+                                closest_outside_index = closest_curve_index;
+                                closest_outside_distance = min_dist;
+                            }
+                        }
+                        if (Math.abs(min_dist) < Math.abs(closest_outright_distance)) {
+                            closest_outright_index = closest_curve_index;
+                            closest_outright_distance = min_dist;
+                        }
+                    }
+
+                    if (closest_inside_index != null && closest_outside_index != null) {
+                        const CLOSEST_INSIDE_POINT = reference_curve_list[closest_inside_index].closest_point_on_curve(POINT,this.VERTICAL_SCALING);
+                        const CLOSEST_OUTSIDE_POINT = reference_curve_list[closest_outside_index].closest_point_on_curve(POINT,this.VERTICAL_SCALING);
+
+                        if (POINT.sub(CLOSEST_INSIDE_POINT).dot(CLOSEST_OUTSIDE_POINT.sub(POINT)) > 0) {
+                            return [closest_inside_index,closest_outside_index];
+                        }
+                    }
+
+                    return [closest_outright_index];
+                }
+                estimate_value(POINT,TYPE) {
+                    var reference_curve_list = null;
+
+                    // select the type of curves to search
+                    if (TYPE == CURVE_TYPE.SPEED) {
+                        reference_curve_list = this.speed_curves;
+                    } else if (TYPE == CURVE_TYPE.EFFICIENCY) {
+                        reference_curve_list = this.efficiency_curves;
+                    }
+
+                    // break out of the function if the referenced list does not exist
+                    if (!reference_curve_list) {return;}
+
+                    const BOUNDING_CURVES = this.determine_bounding_curves(POINT,TYPE);
+
+                    const CURVE_1 = reference_curve_list[BOUNDING_CURVES[0]]
+                    const CURVE_2 = reference_curve_list[BOUNDING_CURVES[1]]
+
+                    if (CURVE_1&&CURVE_2) {
+                        const D_1 = Math.abs(CURVE_1.signed_distance_to_curve(POINT,this.VERTICAL_SCALING));
+                        const D_2 = Math.abs(CURVE_2.signed_distance_to_curve(POINT,this.VERTICAL_SCALING));
+                        const V_1 = CURVE_1.value;
+                        const V_2 = CURVE_2.value;
+                        
+                        return V_1 + V_2 - (V_1*D_1)/(D_1+D_2) - (V_2*D_2)/(D_1+D_2);
+                    } else if (CURVE_1) {
+                        return CURVE_1.value;
+                    }
+                    else return 0
+
+                }
+            }
+
+
+        </script>
+        <script>
+            // Part models //
+
+            function compressor_specific_work(AVERAGE_SPECIFIC_HEAT_CAPACITY_AT_CONSTANT_PRESSURE,TOTAL_TEMPERATURE_STATION_2,TOTAL_PRESSURE_RATIO,RATIO_OF_SPECIFIC_HEATS,EFFICIENCY_FACTOR) {
+                return (AVERAGE_SPECIFIC_HEAT_CAPACITY_AT_CONSTANT_PRESSURE*TOTAL_TEMPERATURE_STATION_2/EFFICIENCY_FACTOR)*(Math.pow(TOTAL_PRESSURE_RATIO,(RATIO_OF_SPECIFIC_HEATS-1)/RATIO_OF_SPECIFIC_HEATS)-1);
+            }
+
+            function burner_total_temperature_ratio(TOTAL_TEMPERATURE_STATION_3,FUEL_AIR_MASS_RATIO,FUEL_HEATING_VALUE,AVERAGE_SPECIFIC_HEAT_CAPACITY_AT_CONSTANT_PRESSURE,EFFICIENCY_FACTOR) {
+                return (1+(FUEL_AIR_MASS_RATIO*EFFICIENCY_FACTOR*FUEL_HEATING_VALUE)/(AVERAGE_SPECIFIC_HEAT_CAPACITY_AT_CONSTANT_PRESSURE*TOTAL_TEMPERATURE_STATION_3)) / (1+FUEL_AIR_MASS_RATIO);
+            }
+
+            function turbine_specific_work(AVERAGE_SPECIFIC_HEAT_CAPACITY_AT_CONSTANT_PRESSURE,TOTAL_TEMPERATURE_STATION_4,TOTAL_PRESSURE_RATIO,RATIO_OF_SPECIFIC_HEATS,EFFICIENCY_FACTOR) {
+                return EFFICIENCY_FACTOR*AVERAGE_SPECIFIC_HEAT_CAPACITY_AT_CONSTANT_PRESSURE*TOTAL_TEMPERATURE_STATION_4*(1 - Math.pow(TOTAL_PRESSURE_RATIO,(RATIO_OF_SPECIFIC_HEATS-1)/RATIO_OF_SPECIFIC_HEATS));
+            }
+
+            function compressor_discharge_temperature(INTAKE_TEMPERATURE, PRESSURE_RATIO, RATIO_OF_SPECIFIC_HEATS,ISENTROPIC_EFFICIENCY_FACTOR) {
+                return INTAKE_TEMPERATURE*(1 + (Math.pow(PRESSURE_RATIO,(RATIO_OF_SPECIFIC_HEATS-1)/RATIO_OF_SPECIFIC_HEATS) - 1)/ISENTROPIC_EFFICIENCY_FACTOR);
+            }
+
+            function turbine_discharge_temperature(INTAKE_TEMPERATURE, PRESSURE_RATIO, RATIO_OF_SPECIFIC_HEATS,ISENTROPIC_EFFICIENCY_FACTOR) {
+                return INTAKE_TEMPERATURE*(1 + (Math.pow(PRESSURE_RATIO,(RATIO_OF_SPECIFIC_HEATS-1)/RATIO_OF_SPECIFIC_HEATS) - 1)*ISENTROPIC_EFFICIENCY_FACTOR);
+            }
+
+            function cp(T) {
+                return 1.05951 - 0.000480684*T + 0.00000123397*T*T - 8.9161e-10 * T*T*T + 2.1957e-13 * T*T*T*T
+            }
+
+            function cv(T) {
+                return 0.772513 - 0.000480684*T + 0.00000123397*T*T - 8.9161e-10 * T*T*T + 2.1957e-13 * T*T*T*T
+            }
+
+            function iterate_compressor(INTAKE_TEMPERATURE,PRESSURE_RATIO,EFFICIENCY_FACTOR, NUM_ITERATIONS) {
+                NUM_ITERATIONS = NUM_ITERATIONS || 10;
+                var Tt3 = INTAKE_TEMPERATURE;
+                var Cw = 0;
+                for (var i = 0; i<NUM_ITERATIONS; i++) {
+                    var average_gam = 0.5*(cp(INTAKE_TEMPERATURE)/cv(INTAKE_TEMPERATURE) + cp(Tt3)/cv(Tt3))
+                    var average_cp = 0.5*(cp(INTAKE_TEMPERATURE)+ cp(Tt3));
+                    Tt3 = compressor_discharge_temperature(INTAKE_TEMPERATURE,PRESSURE_RATIO,average_gam,EFFICIENCY_FACTOR);
+                    Cw = compressor_specific_work(average_cp,INTAKE_TEMPERATURE,PRESSURE_RATIO,average_gam,EFFICIENCY_FACTOR);
+                }
+
+                return {discharge_temperature: Tt3,compressor_work: Cw};
+            }
+
+            function iterate_burner(INTAKE_TEMPERATURE,NUM_ITERATIONS) {
+                NUM_ITERATIONS = NUM_ITERATIONS || 10;
+                var Tt4 = burner_failure_temperature;
+                var throttle = 1
+                for (var i=0; i<NUM_ITERATIONS; i++) {
+                    var average_cp = 0.5*(cp(INTAKE_TEMPERATURE)+ cp(Tt4));
+                    throttle = Math.min(1,(INTAKE_TEMPERATURE-burner_failure_temperature)/(burner_fuel.FUEL_MIX*(burner_failure_temperature-(burner_efficiency*burner_fuel.HV/average_cp))));
+                    Tt4 = INTAKE_TEMPERATURE * burner_total_temperature_ratio(INTAKE_TEMPERATURE,burner_fuel.FUEL_MIX*throttle,burner_fuel.HV,average_cp,burner_efficiency);
+                }
+
+                return {discharge_temperature: Tt4, throttle: throttle};
+            }
+
+            function iterate_turbine(INTAKE_TEMPERATURE,PRESSURE_RATIO,EFFICIENCY_FACTOR,NUM_ITERATIONS) {
+                NUM_ITERATIONS = NUM_ITERATIONS || 10;
+                var Tt5 = INTAKE_TEMPERATURE;
+                var Tw = 0;
+                for (var i = 0; i<NUM_ITERATIONS; i++) {
+                    var average_gam = 0.5*(cp(INTAKE_TEMPERATURE)/cv(INTAKE_TEMPERATURE) + cp(Tt5)/cv(Tt5))
+                    var average_cp = 0.5*(cp(INTAKE_TEMPERATURE)+ cp(Tt5));
+                    Tt5 = turbine_discharge_temperature(INTAKE_TEMPERATURE,PRESSURE_RATIO,average_gam,EFFICIENCY_FACTOR);
+                    Tw = turbine_specific_work(average_cp,INTAKE_TEMPERATURE,PRESSURE_RATIO,average_gam,EFFICIENCY_FACTOR);
+                }
+
+                return {discharge_temperature: Tt5, turbine_work: Tw};
+            }
+
+
+            // Fuel Data //
+
+            const FUELS = [
+                {NAME:"Gasoline",       FUEL_MIX:6.8/100,   HV:45000    },
+                {NAME:"Natural Gas",    FUEL_MIX:5.8/100,   HV:48500    },
+                {NAME:"Propane (LP)",   FUEL_MIX:6.45/100,  HV:50158    },
+                {NAME:"Ethanol",        FUEL_MIX:11.1/100,  HV:29700    },
+                {NAME:"Methanol",       FUEL_MIX:15.6/100,  HV:22700    },
+                {NAME:"n-Butanol",      FUEL_MIX:8.2/100,   HV:33075    },
+                {NAME:"Hydrogen",       FUEL_MIX:2.9/100,   HV:141800   },
+                {NAME:"Diesel",         FUEL_MIX:6.8/100,   HV:44800    },
+                {NAME:"Methane",        FUEL_MIX:5.5/100,   HV:55500    },
+                {NAME:"Acetylene",      FUEL_MIX:7.0/100,   HV:49900    },
+                {NAME:"Ethane",         FUEL_MIX:5.9/100,   HV:47794    },
+                {NAME:"Butane",         FUEL_MIX:6.1/100,   HV:45752    },
+                {NAME:"Pentane",        FUEL_MIX:6.1/100,   HV:45357    },
+            ]
+
+            // Overall model //
+
+            var ambient_total_temperature = 298.15; // the ambient temperature in degrees kelvin
+            var ambient_total_pressure = 101.325; // the ambient absolute pressure in kPa
+            var ambient_specifc_heat_at_constant_pressure = 1.005; // the specific heat at constant pressure for the gas
+            var ambient_ratio_of_specific_heats = 1.4; // the ratio of specific heats for the gas
+
+            var burner_efficiency = 1; // the thermal efficiency of the burner
+            var turbine_efficiency = 1; // the mechanical efficiency of the turbine
+
+            var compressor_map; // the current compressor map
+
+            var burner_fuel // the current fuel
+            var burner_failure_temperature = 600;
+
+            function compute_model(COMPRESSION_RATIO,MASS_FLOW_RATE) {
+                // get the compressor efficiency
+                if (compressor_map == null || compressor_map.efficiency_curves == null) {
+                    return;
+                }
+
+                // create the test point
+                const TEST_POINT = new Vec2(MASS_FLOW_RATE,COMPRESSION_RATIO);
+
+
+                // get the compressor efficiency
+                const COMPRESSOR_EFFICIENCY = compressor_map.estimate_value(TEST_POINT,CURVE_TYPE.EFFICIENCY);
+
+            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+                // compute the compressor values
+                const COMPRESSOR_MODEL_RESULT = iterate_compressor(ambient_total_temperature,COMPRESSION_RATIO,COMPRESSOR_EFFICIENCY);
+
+                // set up the tracking variables
+
+                const BURNER_MODEL_RESULT = iterate_burner(COMPRESSOR_MODEL_RESULT.discharge_temperature);
+
+                const TURBINE_MODEL_RESULT = iterate_turbine(BURNER_MODEL_RESULT.discharge_temperature,1/COMPRESSION_RATIO,turbine_efficiency);
+            
+            // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+            //     // compute the compressor values
+            //     const Tt3 = compressor_discharge_temperature(ambient_total_temperature,COMPRESSION_RATIO,ambient_ratio_of_specific_heats,COMPRESSOR_EFFICIENCY);
+            //     const Cw = compressor_specific_work(ambient_specifc_heat_at_constant_pressure,ambient_total_temperature,COMPRESSION_RATIO,ambient_ratio_of_specific_heats,COMPRESSOR_EFFICIENCY)
+
+            //     // set up the tracking variables
+
+            //     const THROTTLE = Math.min(1,(Tt3-burner_failure_temperature)/(burner_fuel.FUEL_MIX*(burner_failure_temperature-(burner_efficiency*burner_fuel.HV/ambient_specifc_heat_at_constant_pressure))));
+
+            //     const Tt4 = Tt3*burner_total_temperature_ratio(Tt3,THROTTLE*burner_fuel.FUEL_MIX,burner_fuel.HV,ambient_specifc_heat_at_constant_pressure,burner_efficiency)
+            //     const Tw = turbine_specific_work(ambient_specifc_heat_at_constant_pressure,Tt4,1/COMPRESSION_RATIO,ambient_ratio_of_specific_heats,turbine_efficiency)
+
+            //     const max_specific_net_work = Tw-Cw;
+
+            //     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            // //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+                // return the tracked variables
+                return {
+                    power: TURBINE_MODEL_RESULT.turbine_work*MASS_FLOW_RATE*(1+BURNER_MODEL_RESULT.throttle*burner_fuel.FUEL_MIX) - MASS_FLOW_RATE*COMPRESSOR_MODEL_RESULT.compressor_work,
+                    overheat: 1,
+                    spin_down: 0,
+                }
+            }
+
+            // Interactivity //
+
+            function get_ambient_values() {
+                const ATT_INPUT = document.getElementById('total_temperature_input');
+                const ATP_INPUT = document.getElementById('total_pressure_input');
+                const SHACP_INPUT = document.getElementById('specific_heat_at_constant_pressure_input');
+                const ROSH_INPUT = document.getElementById('ratio_of_specific_heats_input');
+
+                ambient_total_temperature = parseFloat(ATT_INPUT.value) + 273.15 || 273.15;
+                ambient_total_pressure = parseFloat(ATP_INPUT.value) || 101.325;
+                ambient_specifc_heat_at_constant_pressure = parseFloat(SHACP_INPUT.value) || 1.005;
+                ambient_ratio_of_specific_heats = parseFloat(ROSH_INPUT.value) || 1.4;
+
+                console.log(`
+            New Ambient Gas Data
+            ├ ambient_total_temperature................... ${ambient_total_temperature} K
+            ├ ambient_total_pressure...................... ${ambient_total_pressure} kPa
+            ├ ambient_specifc_heat_at_constant_pressure... ${ambient_specifc_heat_at_constant_pressure} kJkg⁻¹K⁻¹
+            └ ambient_ratio_of_specific_heats............. ${ambient_ratio_of_specific_heats}` )
+
+            }
+
+            function reset_ambient_conditions_to_standard() {
+                ambient_total_temperature = 273.15;
+                ambient_total_pressure = 101.325;
+                ambient_specifc_heat_at_constant_pressure = 1.005;
+                ambient_ratio_of_specific_heats = 1.4;
+
+                document.getElementById('total_temperature_input').value = ambient_total_temperature - 273.15;
+                document.getElementById('total_pressure_input').value = ambient_total_pressure;
+                document.getElementById('specific_heat_at_constant_pressure_input').value = ambient_specifc_heat_at_constant_pressure;
+                document.getElementById('ratio_of_specific_heats_input').value = ambient_ratio_of_specific_heats;
+
+            }
+
+            function update_efficiencies(ELEMENT) {
+                const BRNR_SLIDER = document.getElementById("burner_efficiency_slider");
+                const TBNE_SLIDER = document.getElementById("turbine_efficiency_slider");
+
+                const BRNR_INPUT = document.getElementById("burner_efficiency_input");
+                const TBNE_INPUT = document.getElementById("turbine_efficiency_input");
+
+                if (ELEMENT == BRNR_SLIDER || ELEMENT == TBNE_SLIDER) {
+                    BRNR_INPUT.value = BRNR_SLIDER.value;
+                    TBNE_INPUT.value = TBNE_SLIDER.value;
+                } else {
+                    BRNR_SLIDER.value = BRNR_INPUT.value;
+                    TBNE_SLIDER.value = TBNE_INPUT.value;
+                }
+
+                burner_efficiency = BRNR_INPUT.value / 100;
+                turbine_efficiency = TBNE_INPUT.value / 100;
+            }
+
+            function load_compressor_map() {
+                const FILE = document.getElementById("compressor_map_file_input").files[0];
+                
+                if (FILE == null) {
+                    return;
+                }
+
+                const FILE_READER = new FileReader();
+
+                FILE_READER.onloadend = function(){
+                    compressor_map = new CompressorMap(FILE_READER.result) // uses the CompressorMap class from the CompressorMapReader.js file.
+                    document.getElementById("compressor_name_output").innerText = compressor_map.name;
+                    document.getElementById("compressor_map_img").src = compressor_map.compressor_img_url
+                }
+                FILE_READER.readAsText(FILE);
+            }
+
+            function open_fuel_drop_down() {
+                const FUEL_DROP_DOWN = document.getElementById("fuel_drop_down");
+
+                var drop_text = "";
+
+                for (var i=0; i < FUELS.length; i++) {
+
+                    var class_text = `class="`
+
+                    if (i%2 == 0) {
+                        class_text += 'drop_down even"'
+                    } else {
+                        class_text += 'drop_down odd"'
+                    }
+                    drop_text += `<div ${class_text} onclick="set_burner_fuel(${i})">${FUELS[i].NAME}</div> `
+                }
+
+
+                FUEL_DROP_DOWN.innerHTML = drop_text;
+                FUEL_DROP_DOWN.onclick = close_fuel_drop_down;
+            }
+
+            function close_fuel_drop_down() {
+
+                // close the drop down //
+                const FUEL_DROP_DOWN = document.getElementById("fuel_drop_down");
+
+                FUEL_DROP_DOWN.innerHTML = "Select Fuel";
+                
+                if (burner_fuel != null) {
+                    FUEL_DROP_DOWN.innerHTML = burner_fuel.NAME;
+                }
+
+                FUEL_DROP_DOWN.onclick = open_fuel_drop_down;
+            }
+
+            function set_burner_fuel(INDEX) {
+                if (FUELS[INDEX] == null) {
+                    return;
+                }
+
+                burner_fuel = FUELS[INDEX];
+
+                // update the heating value and fuel air ratio readouts
+                document.getElementById("fuel_heating_value_output").innerText = burner_fuel.HV;
+                document.getElementById("fuel_stoichiometric_mix_output").innerText = `${Math.round(burner_fuel.FUEL_MIX*10000)/100}%`
+
+            }
+
+            var stop = false;
+
+            function draw_efficiency_key() {
+                // check that the compressor map exists
+                if (compressor_map == null) {return;}
+
+                const START_PIXEL = compressor_map.graph_start_pixel;
+                const END_PIXEL = compressor_map.graph_end_pixel;
+                const DIMENSIONS = compressor_map.graph_end_pixel.sub(START_PIXEL);
+
+                var efficiency_plot_canvas = document.getElementById("efficiency_plot_canvas");
+                var context = efficiency_plot_canvas.getContext("2d");
+
+                var img = document.getElementById("compressor_map_img");
+
+                var gradient = context.createLinearGradient(0,START_PIXEL.y,0,END_PIXEL.y);
+                gradient.addColorStop(0,'#000000d0');
+                gradient.addColorStop(1,'#0000ffd0');
+
+                context.fillStyle = gradient;
+                context.fillRect(img.width+10,START_PIXEL.y,10,DIMENSIONS.y)
+
+                context.fillStyle = 'black';
+                context.font = '10px Verdana'
+
+                context.fillText(`η`,img.width,START_PIXEL.y);
+                context.fillText(`${compressor_map.min_efficiency * 100}%`,img.width+21,START_PIXEL.y);
+                context.fillText(`${compressor_map.max_efficiency * 100}%`,img.width+21,END_PIXEL.y);
+            }
+
+
+            function draw_efficiency_plot() {
+                // check that the compressor map exists
+                if (compressor_map == null) {return;}
+
+                const START_PIXEL = compressor_map.graph_start_pixel;
+                const END_PIXEL = compressor_map.graph_end_pixel;
+                const DIMENSIONS = compressor_map.graph_end_pixel.sub(START_PIXEL);
+
+                var efficiency_plot_canvas = document.getElementById("efficiency_plot_canvas");
+                var context = efficiency_plot_canvas.getContext("2d");
+
+                var img = document.getElementById("compressor_map_img");
+
+                efficiency_plot_canvas.width = img.width+100;
+                efficiency_plot_canvas.height = img.height;
+                context.drawImage(img,0,0);
+
+
+                draw_efficiency_key();
+
+                const NUM_PIXELS_SIMULTANEOUS = 40;
+                
+
+
+                function draw_pixel(x,y) {
+
+                    if (stop) {return;} //break out of the drawing if stop == true
+                    
+                    // convert x,y to flow rate and compression ratio
+                    var flow_rate = ((x-START_PIXEL.x)/DIMENSIONS.x)*compressor_map.graph_width;
+                    var compression_ratio = (1-(y-START_PIXEL.y)/DIMENSIONS.y)*compressor_map.graph_height + 1;
+                    
+                    
+                    var efficiency = compressor_map.estimate_value(new Vec2(flow_rate,compression_ratio),CURVE_TYPE.EFFICIENCY);
+                    var efficiency_hex = (Math.round(255*(efficiency-compressor_map.min_efficiency)/(compressor_map.max_efficiency-compressor_map.min_efficiency))).toString(16).padStart(2,"0");
+                    
+                    context.fillStyle = `#0000${efficiency_hex}d0`;
+                    
+                    context.fillRect(x-1 ,y-1,1,1);
+                    
+                    
+                    if (x < END_PIXEL.x) {
+                        x += 1
+                    } else if (y < END_PIXEL.y) {
+                        x = START_PIXEL.x;
+                        y += NUM_PIXELS_SIMULTANEOUS;
+                    } else {
+                        return;
+                    }
+                    
+                    if (y <= END_PIXEL.y) {
+                        setTimeout(draw_pixel,1,x,y);
+                    } else {
+                    }
+                }
+                
+                
+                const START_Y = 0
+                
+                for (var i=0; i<NUM_PIXELS_SIMULTANEOUS; i++) {
+                    draw_pixel(START_PIXEL.x,START_PIXEL.y+START_Y + i);
+                }
+            
+            }
+
+            function draw_power_plot() {
+                // check that the compressor map exists
+                if (compressor_map == null) {return;}
+
+                const START_PIXEL = compressor_map.graph_start_pixel;
+                const END_PIXEL = compressor_map.graph_end_pixel;
+                const DIMENSIONS = compressor_map.graph_end_pixel.sub(START_PIXEL);
+
+                var power_plot_canvas = document.getElementById("power_plot_canvas");
+                var context = power_plot_canvas.getContext("2d");
+
+                var img = document.getElementById("compressor_map_img");
+
+                power_plot_canvas.width = img.width+100;
+                power_plot_canvas.height = img.height;
+                context.drawImage(img,0,0);
+
+                var min_net_power = Infinity;
+                var max_net_power = -Infinity;
+
+                var plot = [];
+
+
+                const NUM_PIXELS_SIMULTANEOUS = 40;
+                var num_done = 0;
+
+                function calculate_plot(x,y) {
+                    if (stop) {return;} //break out of the drawing if stop == true
+                    // convert x,y to flow rate and compression ratio
+                    var flow_rate = ((x-START_PIXEL.x)/DIMENSIONS.x)*compressor_map.graph_width;
+                    var compression_ratio = (1-(y-START_PIXEL.y)/DIMENSIONS.y)*compressor_map.graph_height + 1;
+                    
+                    var model_summary = compute_model(compression_ratio,flow_rate);
+                    
+                    if (model_summary.power > max_net_power) {
+                        max_net_power = model_summary.power;
+                    }
+
+                    if (model_summary.power < min_net_power) {
+                        min_net_power = model_summary.power;
+                    }
+
+                    if (plot[x] == null) {
+                        plot[x] = [];
+                    }
+                    plot[x][y] = model_summary;
+                    
+                    context.fillRect(x-1 ,y-1,1,1);
+                    
+                    if (x < END_PIXEL.x) {
+                        x += 1
+                    } else if (y < END_PIXEL.y) {
+                        x = START_PIXEL.x;
+                        y += NUM_PIXELS_SIMULTANEOUS;
+                    } else {
+                        num_done++;
+                        if (num_done == NUM_PIXELS_SIMULTANEOUS) { num_done++; draw_pixels();}
+                        
+                        return;
+                    }
+                    
+                    if (y <= END_PIXEL.y) {
+                        setTimeout(calculate_plot,1,x,y);
+                    } else {
+                        num_done++;
+                        return;
+                    }
+                }
+
+                function draw_pixel(x,y,i) {
+                    if (stop) {return;} //break out of the drawing if stop == true
+                    var model_result = plot[x][y];
+
+                    if (model_result == null) {
+                        console.log('nil power')
+                        return}
+
+                    net_power = model_result.power;
+
+                    var interpolation_value = 1;
+
+                    if (net_power > 0) {
+                        interpolation_value = net_power/max_net_power;
+                    } else {
+                        interpolation_value = net_power/min_net_power
+                    }
+
+                    var power_hex = (Math.round(255*interpolation_value)).toString(16).padStart(2,"0");
+                    
+                    
+
+                    if (net_power > 0 ) {
+                        context.fillStyle = `#00${power_hex}00d0`;
+                    } else {
+                        context.fillStyle = `#${power_hex}0000d0`
+                    }
+
+                    if ((plot[x-1] !=null && plot[x-1][y].power * net_power < 0) || (plot[x][y+1] !=null && plot[x][y+1].power * net_power < 0)) {
+                        context.fillStyle = '#d0d000d0';
+                    }
+                    
+                    
+                    context.fillRect(x-1 ,y-1,1,1);
+                    
+
+                    if (x < END_PIXEL.x) {
+                        x += 1
+                    } else if (y < END_PIXEL.y) {
+                        x = START_PIXEL.x;
+                        y += NUM_PIXELS_SIMULTANEOUS;
+                    }
+                    
+                    if (y <= END_PIXEL.y) {
+                        setTimeout(draw_pixel,1,x,y,i+NUM_PIXELS_SIMULTANEOUS);
+                    }
+                }
+
+
+
+                context.fillStyle = '#ffff00d0';
+                for (var i=0; i<NUM_PIXELS_SIMULTANEOUS;i++) {
+                    calculate_plot(START_PIXEL.x,START_PIXEL.y+i);
+                }
+
+                function draw_pixels(){
+                    context.drawImage(img,0,0);
+
+
+                    var gradient = context.createLinearGradient(0,START_PIXEL.y,0,END_PIXEL.y);
+                    gradient.addColorStop(0,'#ff0000d0');
+                    gradient.addColorStop(0.5,'#000000d0');
+                    gradient.addColorStop(1,'#00ff00d0');
+                
+                    context.fillStyle = gradient;
+                    context.fillRect(img.width+30,START_PIXEL.y,10,DIMENSIONS.y)
+                
+                    context.fillStyle = 'black';
+                    context.font = '10px Verdana'
+                
+                    context.fillText(`Power`,img.width,START_PIXEL.y);
+                    context.fillText(`Out`,img.width,START_PIXEL.y+10);
+                    context.fillText(`${(min_net_power).toFixed(2)} kW`,img.width+41,START_PIXEL.y);
+                    context.fillText(`${(max_net_power).toFixed(2)} kW`,img.width+41,END_PIXEL.y);
+                    context.fillText(`0 kW`,img.width+41,START_PIXEL.y+DIMENSIONS.y/2);
+
+
+                    context.fillStyle = '#ffff00ff';
+                    context.fillRect(img.width+30,START_PIXEL.y+DIMENSIONS.y/2,10,1);
+
+                    context.fillStyle = '#00ff00d0';
+                    for (var i=0; i<NUM_PIXELS_SIMULTANEOUS;i++) {
+                        draw_pixel(START_PIXEL.x,START_PIXEL.y+i,i);
+                    }
+                }
+
+
+            }
+
+            function get_burner_turbine_efficiencies() {
+                burner_efficiency = document.getElementById('burner_efficiency_slider').value/100;
+                turbine_efficiency = document.getElementById('turbine_efficiency_slider').value/100;
+            }
+
+            // Setup //
+
+            get_ambient_values();
+            load_compressor_map();
+            set_burner_fuel(0);
+            close_fuel_drop_down();
+            get_burner_turbine_efficiencies();
+            burner_failure_temperature = parseFloat(document.getElementById("burner_failure_temperature_input").value)+273.15
+
+
+
+        </script>
+    </footer> 
+</html>
