@@ -17,7 +17,7 @@ This software allows you to trace over a compressor map's efficiency and speed c
 11. Click the 'Export' button and copy the text underneath the curve list
 12. Paste the text into a text file
 
-Several example output files are in the CompressorMaps folder
+Several example output files are in the Compressor Maps folder
 
 ## CompressorReader.js
 This javascript file does the job of interpolating between efficiency curves for the Gas Turbine Model
