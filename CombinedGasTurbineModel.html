@@ -97,6 +97,7 @@
                     kPa
                 </td>
             </tr>
+            <!-- These are done automaticaly using an empirical formula, cp(T), cv(T)
             <tr>
                 <td>
                     Specific Heat at Constant Pressure,&nbsp;cₚ
@@ -119,6 +120,7 @@
                     
                 </td>
             </tr>
+            -->
             <tr>
                 <td colspan="2">
                     <button onclick="reset_ambient_conditions_to_standard(); get_ambient_values()"> Reset Conditions</button>
@@ -670,11 +672,13 @@
             }
 
             function cp(T) {
-                return 1.05951 - 0.000480684*T + 0.00000123397*T*T - 8.9161e-10 * T*T*T + 2.1957e-13 * T*T*T*T
+                T = Math.max(250,Math.min(1500,T));
+                return 1.05951 - 0.000480684*T + 0.00000123397*T*T - 8.9161e-10 * T*T*T + 2.1957e-13 * T*T*T*T;
             }
 
             function cv(T) {
-                return 0.772513 - 0.000480684*T + 0.00000123397*T*T - 8.9161e-10 * T*T*T + 2.1957e-13 * T*T*T*T
+                T = Math.max(250,Math.min(1500,T));
+                return 0.772513 - 0.000480684*T + 0.00000123397*T*T - 8.9161e-10 * T*T*T + 2.1957e-13 * T*T*T*T;
             }
 
             function iterate_compressor(INTAKE_TEMPERATURE,PRESSURE_RATIO,EFFICIENCY_FACTOR, NUM_ITERATIONS) {
