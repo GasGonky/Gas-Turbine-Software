@@ -815,13 +815,13 @@
             function get_ambient_values() {
                 const ATT_INPUT = document.getElementById('total_temperature_input');
                 const ATP_INPUT = document.getElementById('total_pressure_input');
-                const SHACP_INPUT = document.getElementById('specific_heat_at_constant_pressure_input');
-                const ROSH_INPUT = document.getElementById('ratio_of_specific_heats_input');
+                // const SHACP_INPUT = document.getElementById('specific_heat_at_constant_pressure_input');
+                // const ROSH_INPUT = document.getElementById('ratio_of_specific_heats_input');
 
                 ambient_total_temperature = parseFloat(ATT_INPUT.value) + 273.15 || 273.15;
                 ambient_total_pressure = parseFloat(ATP_INPUT.value) || 101.325;
-                ambient_specifc_heat_at_constant_pressure = parseFloat(SHACP_INPUT.value) || 1.005;
-                ambient_ratio_of_specific_heats = parseFloat(ROSH_INPUT.value) || 1.4;
+                ambient_specifc_heat_at_constant_pressure = 1.005 // parseFloat(SHACP_INPUT.value) || 1.005; replaced by cp(T) and cv(T)
+                ambient_ratio_of_specific_heats = 1.5 // parseFloat(ROSH_INPUT.value) || 1.4;
 
                 console.log(`
             New Ambient Gas Data
