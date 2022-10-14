@@ -7,7 +7,7 @@ This software allows you to trace over a compressor map's efficiency and speed c
 1. Enter a URL to the compressor map image and the name of the compressor
 2. Enter the pixel coordinates of the top left pixel of the graph (the pixel is on the axis) as the graph start pixel
 3. Enter the pixel coordinates of the bottom right pixel of the graph (again, the bottom right pixel on the axis)
-4. Enter the width and height of the graph in the graph units e.g. kg/s
+4. Enter the width and height of the graph in kg/s and compression ratio respectively
 5. Add a new curve using the 'New Curve' button
 6. Trace a curve on the compressor map (Note that you can make the curve closed by clicking the 'O' button. It will turn to 'C' to indicate the change)
 7. Enter the value associated with the curve in the 'VAL' box for the curve
