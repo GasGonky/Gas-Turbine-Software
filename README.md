@@ -27,7 +27,7 @@ It works by determining which curves a given point lies between, and then linear
 ## Gas Turbine Model
 This is a model for a gas turbine. It uses equations provided by NASA to determine the net power output of a gas turbine, with the compressor efficiency being read from a compressor map.
 
-!! I AM NOT AN EXPERT IN COMRPESSORS OR GAS TURBINES, SO TAKE ANY OUTPUTS FROM THE MODEL WITH A PINCH OF SALT !!
+!! I AM NOT AN EXPERT IN COMRPESSORS OR GAS TURBINES, SO TAKE CARE WITH ANY OUTPUTS !!
 
 NASA equations:
 
